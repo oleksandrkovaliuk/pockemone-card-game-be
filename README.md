@@ -1,1 +1,2 @@
-# pockemone-card-game-be
+# pockemone-card-game
+Pockemon card game ui
