@@ -1,16 +1,26 @@
 require("dotenv").config();
-const createError = require("http-errors");
-const express = require("express");
 const path = require("path");
-const cookieParser = require("cookie-parser");
-const logger = require("morgan");
 const cors = require("cors");
+const logger = require("morgan");
+const express = require("express");
+const mongoose = require("mongoose");
+const { Server } = require("socket.io");
+const createError = require("http-errors");
+const cookieParser = require("cookie-parser");
 
-const mainRouters = require("./routes/mainRoutes");
 const defaultCorsSettings = require("./barear/corsSettings");
 
+const mainRouters = require("./routes/mainRoutes");
+const fightAction = require("./api/sockets/fightActions");
+
+const createNewUserFight = require("./lib/createNewUserFight");
+
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3001;
+const http_server = require("http").createServer(app);
+const io = new Server(http_server, {
+  cors: defaultCorsSettings,
+});
 
 const setupRoutes = () => {
   app.use(cors(defaultCorsSettings));
@@ -44,12 +54,42 @@ const setupMiddlewares = () => {
   app.use(express.json({ limit: "10mb" }));
 };
 
+const proccesingSockets = () => {
+  io.on("connection", (socket) => {
+    socket.on("request_create_new_fight", async (data) => {
+      const new_fight = await createNewUserFight(
+        data.fightInfo.userPokemon,
+        data.fightInfo.generatedPokemon
+      );
+      return io.emit("approved", new_fight._id);
+    });
+
+    socket.on("attacked", async (data) => {
+      const { attacker, attacked, fightId } = data;
+      await fightAction(attacker, attacked, fightId, socket, io);
+    });
+  });
+};
+
 async function init() {
   try {
     setupMiddlewares();
     setupRoutes();
 
-    app.listen(PORT, () => {
+    const clientOptions = {
+      serverApi: { version: "1", strict: true, deprecationErrors: true },
+    };
+
+    await mongoose.connect(process.env.MONGO_CONNECTION_STRING, clientOptions);
+    await mongoose.connection.db.admin().command({ ping: 1 });
+
+    console.log(
+      `\x1b[31mMongoDB connection established and pinged successfully.\x1b[0m`
+    );
+
+    proccesingSockets();
+
+    http_server.listen(PORT, () => {
       console.log(
         `\x1b[42m${process.env.PROD}\x1b[0m \x1b[31m${"project stage"}\x1b[0m`
       );
@@ -58,6 +98,7 @@ async function init() {
       );
     });
   } catch (error) {
+    await mongoose.disconnect();
     throw new Error(`Could not init application: ${error}`);
   }
 }
