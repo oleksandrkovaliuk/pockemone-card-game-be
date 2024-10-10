@@ -13,7 +13,8 @@ const fightAction = async (attacker, attacked, fightId, socket, io) => {
 
     const power =
       ((current_fight[attacker].base.Attack /
-        current_fight[attacked].base.Defense) *
+        current_fight[attacked].base.Defense /
+        2) *
         current_fight[attacker].base.Speed) /
       2;
 
