@@ -16,9 +16,9 @@ const authenticateToken = require("../middelwares/authenticateToken");
 router.route("/pokemons/get").get(authenticateToken, getPokemonsByRequest);
 
 // AUTH
-router.route("/auth/get/nonce").post(getNonce);
+router.route("/auth/get/nonce").get(getNonce);
 router.route("/auth/authenticate/user").post(authenticateUser);
-router.route("/auth/get/user").post(authenticateToken, verifyAndGetUser);
+router.route("/auth/get/user").get(authenticateToken, verifyAndGetUser);
 
 // GAME ENVIRONMENT
 router

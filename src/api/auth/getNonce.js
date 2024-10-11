@@ -1,9 +1,9 @@
 const User = require("../../config/schemas/userModel");
 
 const getNonce = async (req, res) => {
-  const { walletAddress } = req.body;
+  const params = req.query;
   try {
-    let user = await User.findOne({ walletAddress });
+    let user = await User.findOne({ walletAddress: params.walletAddress });
     if (!user) {
       user = (await User.create({ walletAddress })).save();
     }
